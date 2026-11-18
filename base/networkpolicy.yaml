@@ -1,0 +1,31 @@
+# k3d's default flannel CNI does not enforce NetworkPolicy. This manifest is
+# declarative intent for a policy-capable CNI (e.g. Calico) in v3.
+# It does not affect the v1 deployment.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: warden-ingress
+  namespace: apps
+spec:
+  podSelector:
+    matchLabels:
+      app: warden
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: platform
+          podSelector:
+            matchLabels:
+              app: cloudflared
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8000

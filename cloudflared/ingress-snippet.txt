@@ -1,0 +1,9 @@
+# Add this rule to platform-config/manifests/cloudflared/config.yaml
+# Place it ABOVE the catch-all `- service: http_status:404` line.
+
+      - hostname: warden.zachara.dev
+        service: http://warden.apps.svc.cluster.local:8080
+
+# Then, in the Cloudflare dashboard, create a DNS record for warden.zachara.dev
+# pointing at the existing tunnel. The cloudflared pod will pick up the new
+# ConfigMap after Argo CD syncs platform-config.

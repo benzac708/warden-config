@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warden-page
+  namespace: apps
+data:
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Warden — read-only incident reports</title>
+    <style>
+      :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --line:#2a3441; --fg:#e6edf3; --muted:#8b98a5; --accent:#4ade80; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .wrap { max-width:860px; margin:0 auto; padding:32px 20px 64px; }
+      header { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:24px; }
+      h1 { margin:0; font-size:22px; letter-spacing:.28em; }
+      .tag { color:var(--muted); font-size:12px; }
+      .badge { display:inline-block; padding:3px 9px; border:1px solid var(--accent); color:var(--accent); border-radius:999px; font-size:11px; letter-spacing:.12em; }
+      .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:22px; margin-bottom:16px; }
+      .summary { font-size:16px; margin:14px 0 18px; }
+      .conf { color:var(--accent); font-size:20px; }
+      .bar { height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-top:8px; }
+      .bar > i { display:block; height:100%; background:var(--accent); }
+      table { width:100%; border-collapse:collapse; font-size:13px; }
+      td, th { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+      th { color:var(--muted); font-weight:normal; }
+      code { color:#a5d6ff; word-break:break-word; }
+      footer { color:var(--muted); font-size:12px; margin-top:24px; }
+      .note { border:1px dashed var(--line); color:var(--muted); padding:10px 14px; border-radius:8px; font-size:12px; }
+    </style>
+    </head>
+    <body>
+    <div class="wrap">
+      <header>
+        <h1>WARDEN</h1>
+        <span class="tag">read-only · refreshes 30s</span>
+      </header>
+
+      <div class="card">
+        <span class="badge" id="status">WAITING</span>
+        <h2 id="alert" style="margin:14px 0 0;font-size:14px;color:var(--muted)"></h2>
+        <p class="summary" id="summary">Waiting for the first investigation.</p>
+        <div>confidence <span class="conf" id="confidence">—</span></div>
+        <div class="bar"><i id="confbar" style="width:0%"></i></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;font-size:13px;color:var(--muted);letter-spacing:.1em">INVESTIGATION</h3>
+        <table><thead><tr><th>#</th><th>TOOL</th><th>RESULT</th></tr></thead><tbody id="trace"></tbody></table>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;font-size:13px;color:var(--muted);letter-spacing:.1em">EVIDENCE</h3>
+        <ul id="evidence" style="padding-left:18px;margin-bottom:0"></ul>
+      </div>
+
+      <p class="note">This page is a read-only report. It accepts no input. Warden cannot change the cluster.</p>
+      <footer id="footer"></footer>
+    </div>
+    <script>
+      function clear(id) { document.getElementById(id).textContent = ''; }
+      function addText(id, tag, text) {
+        const el = document.createElement(tag);
+        el.textContent = text;
+        document.getElementById(id).appendChild(el);
+      }
+      async function load() {
+        try {
+          const res = await fetch('/report.json', { cache: 'no-store' });
+          const d = await res.json();
+          if (!d || !d.status) return;
+          document.getElementById('status').textContent = String(d.status).toUpperCase();
+          document.getElementById('alert').textContent =
+            [d.alert && d.alert.name, d.alert && d.alert.service].filter(Boolean).join(' · ');
+          document.getElementById('summary').textContent = d.summary || '';
+          const c = Number(d.confidence || 0);
+          document.getElementById('confidence').textContent = Math.round(c * 100) + '%';
+          document.getElementById('confbar').style.width = Math.round(c * 100) + '%';
+          clear('trace');
+          (d.trace || []).forEach(function (t) {
+            const row = document.createElement('tr');
+            [t.step, t.tool, t.result].forEach(function (v) {
+              const cell = document.createElement('td');
+              cell.textContent = String(v === undefined ? '' : v);
+              row.appendChild(cell);
+            });
+            document.getElementById('trace').appendChild(row);
+          });
+          clear('evidence');
+          (d.evidence || []).forEach(function (e) { addText('evidence', 'li', String(e)); });
+          const cost = d.cost || {};
+          document.getElementById('footer').textContent =
+            'Last run ' + (d.generated_at || '?') + ' · ' +
+            (cost.tokens_in || 0) + ' in / ' + (cost.tokens_out || 0) + ' out · ' +
+            (cost.model || '?') + (d.sanitized ? ' · sanitized' : ' · UNSANITIZED');
+        } catch (e) { /* keep the last good page */ }
+      }
+      load();
+      setInterval(load, 30000);
+    </script>
+    </body>
+    </html>
