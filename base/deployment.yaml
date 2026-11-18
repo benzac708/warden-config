@@ -24,10 +24,18 @@ spec:
                 secretKeyRef:
                   name: warden-llm
                   key: api-key
+            - name: WARDEN_LLM_MODEL
+              value: openai/gpt-oss-20b
             - name: WARDEN_REPORT_PATH
               value: /var/www/warden/report.json
             - name: WARDEN_METRICS_PORT
               value: "8000"
+            - name: WARDEN_MAX_STEPS
+              value: "3"
+            - name: WARDEN_INTERVAL_SECONDS
+              value: "900"
+            - name: WARDEN_TOKEN_BUDGET
+              value: "12000"
           ports:
             - name: metrics
               containerPort: 8000
