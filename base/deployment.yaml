@@ -16,7 +16,7 @@ spec:
       serviceAccountName: warden
       containers:
         - name: warden-agent
-          image: ghcr.io/benzac708/warden:5e139e310693851181ac8d09ec4a22cae4edbd0e
+          image: ghcr.io/benzac708/warden:987f678c242748e4361ae508b4817fb7ec0089ef
           command: ["python", "-m", "warden.cli", "agent"]
           env:
             - name: WARDEN_LLM_API_KEY
@@ -51,7 +51,7 @@ spec:
               memory: 256Mi
 
         - name: warden-showcase
-          image: ghcr.io/benzac708/warden:5e139e310693851181ac8d09ec4a22cae4edbd0e
+          image: ghcr.io/benzac708/warden:987f678c242748e4361ae508b4817fb7ec0089ef
           command: ["python", "-m", "warden.cli", "serve"]
           env:
             - name: WARDEN_SERVE_PORT
