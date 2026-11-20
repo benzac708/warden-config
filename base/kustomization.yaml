@@ -9,3 +9,4 @@ resources:
   - rbac.yaml
   - networkpolicy.yaml
   - sealed-secrets.yaml
+  - hpa.yaml
