@@ -8,6 +8,12 @@ Kustomize base and Argo CD application for [warden](https://github.com/benzac708
 
 The public page is served by the `warden-showcase` container only. The `warden-agent` container is internal and holds the LLM key. Neither container can write to the cluster.
 
+## Prerequisites
+
+Warden queries Loki for cluster logs. Loki is **not** part of kube-prometheus-stack,
+so install it first — see [`loki/`](loki/README.md) for the Helm/Argo CD setup.
+Without Loki, every warden report has confidence 0.0 and a DNS error.
+
 ## Deploy (run on the VPS over Tailscale)
 
 ```sh

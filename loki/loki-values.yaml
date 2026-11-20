@@ -1,0 +1,100 @@
+# Helm values for grafana/loki (chart 7.6.0, app 3.6.18)
+# Single-binary mode: one pod, filesystem storage on a local-path PVC.
+# No object storage required. Fits the 3-node k3d cluster.
+# Install: helm install loki grafana/loki -n monitoring -f loki-values.yaml
+# Or via Argo CD: see app-loki.yaml
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+
+  # Single binary: replication factor 1.
+  commonConfig:
+    replication_factor: 1
+
+  # Filesystem storage on the PVC mounted at /var/loki.
+  storage:
+    type: filesystem
+    filesystem:
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
+
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  limits_config:
+    retention_period: 168h
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+    max_cache_freshness_per_query: 10m
+    split_queries_by_interval: 15m
+    query_timeout: 300s
+    volume_enabled: true
+
+  # Compactor handles retention on filesystem storage.
+  compactor:
+    working_directory: /var/loki/compactor
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+
+  # Keep the server port matching warden's default (3100).
+  server:
+    http_listen_port: 3100
+    grpc_listen_port: 9095
+
+# Single binary needs no memberlist/HA.
+memberlist:
+  service:
+    publishNotReadyAddresses: false
+
+# Persist data on the cluster's default StorageClass (local-path).
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Disable the optional caches (not needed at this scale).
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+# SingleBinary mode: disable the SimpleScalable targets so validation passes.
+write:
+  replicas: 0
+read:
+  replicas: 0
+backend:
+  replicas: 0
+
+# Expose Loki as a ClusterIP service named "loki" in the monitoring namespace.
+# warden uses the default URL http://loki.monitoring.svc.cluster.local:3100.
+service:
+  type: ClusterIP
+  port: 3100
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+    interval: 30s

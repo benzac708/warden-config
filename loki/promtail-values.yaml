@@ -1,0 +1,52 @@
+# Helm values for grafana/promtail (chart 6.17.1, app 3.5.1)
+# Ships container logs from every node to Loki in the monitoring namespace.
+# Install: helm install promtail grafana/promtail -n monitoring -f promtail-values.yaml
+# Or via Argo CD: see app-promtail.yaml
+
+# Run promtail as a DaemonSet on every node.
+daemonset:
+  enabled: true
+
+# Where to push logs.
+config:
+  clients:
+    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
+  snippets:
+    # Scrape pod logs from /var/log/pods.
+    scrapeConfigs: |
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_container_name]
+            target_label: container
+        pipeline_stages:
+          - cri: {}
+
+# Resources (small footprint).
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Tolerate control-plane nodes so logs ship from everywhere.
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: promtail
