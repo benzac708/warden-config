@@ -21,7 +21,7 @@ spec:
         fsGroup: 10001
       containers:
         - name: warden-agent
-          image: ghcr.io/benzac708/warden:f9defd1bc8135fe86b0401085b51940ec290c17b
+          image: ghcr.io/benzac708/warden:2cac34807318a3d504f4d264a0e3c1bddda80cbc
           command: ["python", "-m", "warden.cli", "agent"]
           env:
             - name: WARDEN_LLM_API_KEY
@@ -66,7 +66,7 @@ spec:
               memory: 256Mi
 
         - name: warden-showcase
-          image: ghcr.io/benzac708/warden:f9defd1bc8135fe86b0401085b51940ec290c17b
+          image: ghcr.io/benzac708/warden:2cac34807318a3d504f4d264a0e3c1bddda80cbc
           command: ["python", "-m", "warden.cli", "serve"]
           env:
             - name: WARDEN_SERVE_PORT
