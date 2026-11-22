@@ -10,33 +10,37 @@ The public page is served by the `warden-showcase` container only. The `warden-a
 
 ## Prerequisites
 
-Warden queries Loki for cluster logs. Loki is **not** part of kube-prometheus-stack,
-so install it first — see [`loki/`](loki/README.md) for the Helm/Argo CD setup.
-Without Loki, every warden report has confidence 0.0 and a DNS error.
+Warden queries Loki for cluster logs. Loki is **not** part of kube-prometheus-stack.
+The `loki`, `promtail`, and `loki-datasource` Argo CD Applications in `loki/`
+install and configure it — see [`loki/README.md`](loki/README.md). Without Loki,
+every warden report has confidence 0.0 and a DNS error.
+
+The `warden` Argo CD Application is owned by the App-of-Apps in
+`platform-config/bootstrap/root-app.yaml`. Do not apply an Application from this
+repo; edit `platform-config/apps/warden.yaml` instead.
+
+## LLM key
+
+The LLM key is a `SealedSecret` in `base/sealed-secrets.yaml`. That is the only
+supported source of truth. Rotate it with `kubeseal` and an Argo CD sync; do not
+create `warden-llm` with `kubectl create secret`, because the two sources of
+truth conflict under `prune: true` and `selfHeal: true`.
 
 ## Deploy (run on the VPS over Tailscale)
 
+The tunnel route for `warden.zachara.dev` is already in
+`platform-config/manifests/cloudflared/config.yaml` — do not add it again.
+
 ```sh
-# 1. Create the LLM key secret (one time). Use a key with a free model quota.
-read -rs -p 'LLM API key: ' KEY; echo
-kubectl -n apps create secret generic warden-llm \
-  --from-literal=api-key="$KEY" --dry-run=client -o yaml | kubectl apply -f -
-unset KEY
-
-# 2. Register the Argo CD Application (one time).
-kubectl apply -f app.yaml
-
-# 3. Add the tunnel hostname (see cloudflared/ingress-snippet.txt) and the DNS
-#    record in the Cloudflare dashboard, then let Argo CD sync platform-config.
-
-# 4. Verify.
 kubectl -n apps rollout status deploy/warden
 kubectl -n apps get pods -l app=warden
 curl -fsS https://warden.zachara.dev/healthz
 curl -fsS https://warden.zachara.dev/report.json | head
 ```
 
-Prerequisite: the `warden` repo needs a `CONFIG_REPO_TOKEN` secret (an SSH key with write access to this repo) before its CI can bump the image tag. The initial manifest uses the `:v1` tag, so the pod still runs if that secret is missing.
+The `warden` repo needs a `CONFIG_REPO_TOKEN` secret (an SSH key with write
+access to this repo) before its CI can bump the image tag. Both containers are
+pinned to a commit SHA, so a missing token leaves the last working image in place.
 
 ## Resource footprint
 

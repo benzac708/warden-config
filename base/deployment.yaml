@@ -14,6 +14,11 @@ spec:
         app: warden
     spec:
       serviceAccountName: warden
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
         - name: warden-agent
           image: ghcr.io/benzac708/warden:3119f406b42d5208643e7acfafd1a65a190b01a5
@@ -39,6 +44,16 @@ spec:
           ports:
             - name: metrics
               containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 60
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: www
               mountPath: /var/www/warden
@@ -63,6 +78,10 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: www
               mountPath: /var/www/warden

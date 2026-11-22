@@ -13,8 +13,9 @@ Adds log aggregation to the k3d cluster so `warden` (and other apps) can query l
 ```sh
 kubectl apply -f loki/app-loki.yaml
 kubectl apply -f loki/app-promtail.yaml
-# Argo CD syncs both. Watch:
-kubectl -n argocd get applications loki promtail
+kubectl apply -f loki/app-datasource.yaml
+# Argo CD syncs all three. Watch:
+kubectl -n argocd get applications loki promtail loki-datasource
 ```
 
 ### Via Helm (manual)
@@ -37,4 +38,6 @@ curl -s "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/query?query=%
 
 ## Grafana datasource
 
-Add a Loki datasource in Grafana pointing at `http://loki.monitoring.svc.cluster.local:3100`. Grafana is already deployed by kube-prometheus-stack.
+The datasource is managed by `loki/app-datasource.yaml` from
+`loki/datasource/grafana-datasource.yaml`. The kube-prometheus-stack sidecar
+loads the labeled ConfigMap. Do not add it by hand in the Grafana UI.

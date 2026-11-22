@@ -1,18 +1,20 @@
+# Argo CD Application for the Grafana Loki datasource.
+# Manages the ConfigMap that the kube-prometheus-stack sidecar loads.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: warden
+  name: loki-datasource
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/benzac708/warden-config.git
     targetRevision: main
-    path: base
+    path: loki/datasource
   destination:
     server: https://kubernetes.default.svc
-    namespace: apps
+    namespace: monitoring
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
